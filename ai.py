@@ -1,80 +1,104 @@
+import chess
 from evaluate import evaluate
 
-def minimax(board, depth, maximizing):
-    if depth == 0 or board.is_game_over():
-        return evaluate(board), None
 
+def minimax(board, depth, maximizing_player):
+    score, move, _ = minimax_with_stats(board, depth, maximizing_player)
+    return score, move
+
+
+def alphabeta(board, depth, alpha, beta, maximizing_player):
+    score, move, _ = alphabeta_with_stats(board, depth, alpha, beta, maximizing_player)
+    return score, move
+
+
+def minimax_with_stats(board, depth, maximizing_player):
+    nodes = 1  # count this position
+
+    if depth == 0 or board.is_game_over():
+        return evaluate(board), None, nodes
+
+    legal_moves = list(board.legal_moves)
     best_move = None
 
-    if maximizing:
-        max_eval = float('-inf')
-        for move in board.legal_moves:
+    if maximizing_player:
+        max_eval = float("-inf")
+        for move in legal_moves:
             board.push(move)
-            eval, _ = minimax(board, depth-1, False)
+            eval_score, _, child_nodes = minimax_with_stats(board, depth - 1, False)
             board.pop()
 
-            if eval > max_eval:
-                max_eval = eval
+            nodes += child_nodes
+
+            if eval_score > max_eval:
+                max_eval = eval_score
                 best_move = move
 
-        return max_eval, best_move
+        return max_eval, best_move, nodes
 
     else:
-        min_eval = float('inf')
-        for move in board.legal_moves:
+        min_eval = float("inf")
+        for move in legal_moves:
             board.push(move)
-            eval, _ = minimax(board, depth-1, True)
+            eval_score, _, child_nodes = minimax_with_stats(board, depth - 1, True)
             board.pop()
 
-            if eval < min_eval:
-                min_eval = eval
+            nodes += child_nodes
+
+            if eval_score < min_eval:
+                min_eval = eval_score
                 best_move = move
 
-        return min_eval, best_move
-    
+        return min_eval, best_move, nodes
 
-def alphabeta(board, depth, alpha, beta, maximizing):
+
+def alphabeta_with_stats(board, depth, alpha, beta, maximizing_player):
+    nodes = 1  # count this position
+
     if depth == 0 or board.is_game_over():
-        return evaluate(board), None
+        return evaluate(board), None, nodes
 
+    legal_moves = list(board.legal_moves)
     best_move = None
 
-    if maximizing:
-        max_eval = float('-inf')
-
-        for move in board.legal_moves:
+    if maximizing_player:
+        max_eval = float("-inf")
+        for move in legal_moves:
             board.push(move)
-            eval, _ = alphabeta(board, depth - 1, alpha, beta, False)
+            eval_score, _, child_nodes = alphabeta_with_stats(
+                board, depth - 1, alpha, beta, False
+            )
             board.pop()
 
-            if eval > max_eval:
-                max_eval = eval
+            nodes += child_nodes
+
+            if eval_score > max_eval:
+                max_eval = eval_score
                 best_move = move
 
-            alpha = max(alpha, eval)
-
-            # 🔥 PRUNE
+            alpha = max(alpha, eval_score)
             if beta <= alpha:
                 break
 
-        return max_eval, best_move
+        return max_eval, best_move, nodes
 
     else:
-        min_eval = float('inf')
-
-        for move in board.legal_moves:
+        min_eval = float("inf")
+        for move in legal_moves:
             board.push(move)
-            eval, _ = alphabeta(board, depth - 1, alpha, beta, True)
+            eval_score, _, child_nodes = alphabeta_with_stats(
+                board, depth - 1, alpha, beta, True
+            )
             board.pop()
 
-            if eval < min_eval:
-                min_eval = eval
+            nodes += child_nodes
+
+            if eval_score < min_eval:
+                min_eval = eval_score
                 best_move = move
 
-            beta = min(beta, eval)
-
-            # 🔥 PRUNE
+            beta = min(beta, eval_score)
             if beta <= alpha:
                 break
 
-        return min_eval, best_move
+        return min_eval, best_move, nodes
