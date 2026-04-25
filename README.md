@@ -70,6 +70,11 @@ You will play as White against the AI. Click one of your pieces, then click a hi
 - start a new game
 - undo the last turn
 
+In `AI vs AI` mode, you can also:
+- set a different search depth for White and Black
+- autoplay the game
+- step through one full turn at a time
+
 ### Play Against the AI in the Terminal
 If you want the original terminal version:
 
@@ -104,6 +109,8 @@ python plot_results.py --input results.csv
 Optional plot arguments:
 - `--runtime-output`: output file name for the runtime graph
 - `--nodes-output`: output file name for the nodes expanded graph
+
+If the CSV includes both `alphabeta` and `minimax` runs, each graph will show both algorithms together for direct comparison.
 
 ## CSV Metrics
 Each experiment row currently records:
