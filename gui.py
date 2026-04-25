@@ -40,6 +40,7 @@ class ChessApp:
         self.selected_square = None
         self.legal_targets = set()
         self.auto_play_job = None
+        self.auto_play_stop_requested = False
 
         self.status_var = tk.StringVar(value="Your turn. You are White.")
         self.depth_var = tk.IntVar(value=2)
@@ -110,7 +111,7 @@ class ChessApp:
         )
         self.start_auto_play_button.grid(row=7, column=0, sticky="ew", pady=(0, 8))
         self.stop_auto_play_button = ttk.Button(
-            side_panel, text="Stop Auto Play", command=self.stop_auto_play
+            side_panel, text="Stop Auto Play", command=self.request_stop_auto_play
         )
         self.stop_auto_play_button.grid(row=8, column=0, sticky="ew", pady=(0, 8))
         self.step_move_button = ttk.Button(
@@ -236,8 +237,21 @@ class ChessApp:
             return
 
         if self.auto_play_job is None:
+            self.auto_play_stop_requested = False
             self.status_var.set("AI vs AI autoplay started.")
             self._schedule_auto_play()
+
+    def request_stop_auto_play(self):
+        if self.auto_play_job is None:
+            self.status_var.set("Auto play is not currently running.")
+            return
+
+        if self.board.turn == chess.WHITE:
+            self.stop_auto_play()
+            self.status_var.set("Auto play stopped after Black completed the turn.")
+        else:
+            self.auto_play_stop_requested = True
+            self.status_var.set("Stop requested. Black will make one final move.")
 
     def stop_auto_play(self):
         if self.auto_play_job is not None:
@@ -246,6 +260,7 @@ class ChessApp:
             except tk.TclError:
                 pass
             self.auto_play_job = None
+        self.auto_play_stop_requested = False
 
     def _update_mode_controls(self):
         if self.mode_var.get() == AI_VS_AI:
@@ -274,6 +289,11 @@ class ChessApp:
 
         if self.board.is_game_over():
             self._finish_game()
+            return
+
+        if self.auto_play_stop_requested and self.board.turn == chess.WHITE:
+            self.stop_auto_play()
+            self.status_var.set("Auto play stopped after Black completed the turn.")
             return
 
         self._schedule_auto_play()
