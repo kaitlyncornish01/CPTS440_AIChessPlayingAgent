@@ -20,7 +20,11 @@ The project currently supports:
 - Heuristic evaluation based on:
   - material balance
   - mobility
-  - center occupation
+  - piece-square positional scoring
+  - center control and occupation
+  - pawn structure
+  - bishop pair bonus
+  - king safety and castling
   - terminal state handling (checkmate, stalemate, insufficient material)
 - Node counting for search performance analysis
 - Automated self-play benchmarking across algorithms and depths
@@ -66,6 +70,11 @@ You will play as White against the AI. Click one of your pieces, then click a hi
 - start a new game
 - undo the last turn
 
+In `AI vs AI` mode, you can also:
+- set a different search depth for White and Black
+- autoplay the game
+- step through one full turn at a time
+
 ### Play Against the AI in the Terminal
 If you want the original terminal version:
 
@@ -101,6 +110,8 @@ Optional plot arguments:
 - `--runtime-output`: output file name for the runtime graph
 - `--nodes-output`: output file name for the nodes expanded graph
 
+If the CSV includes both `alphabeta` and `minimax` runs, each graph will show both algorithms together for direct comparison.
+
 ## CSV Metrics
 Each experiment row currently records:
 - `algorithm`
@@ -116,13 +127,17 @@ Each experiment row currently records:
 These metrics make it easier to compare the effect of search depth and algorithm choice on performance.
 
 ## Current Evaluation Function
-The evaluation function combines a few simple heuristics:
+The evaluation function combines several weighted heuristics:
 - material balance using standard piece values
+- piece-square tables for positional play
 - mobility based on legal move counts for both sides
-- center occupation of the four central squares
+- center attack and center occupation of the four central squares
+- pawn-structure penalties for doubled and isolated pawns
+- bishop pair bonus
+- king safety / castling incentives
 - terminal position scoring for checkmate and draws
 
-This keeps the agent understandable and easy to analyze, while still producing meaningful search behavior for experiments.
+The weights and bonuses are defined as named constants in `evaluate.py`, which makes the heuristic easier to tune and explain during experiments or in the final report.
 
 ## Example Workflow
 1. Run `python experiment.py --algorithms alphabeta minimax --depths 1 2 3 --trials 3 --output results.csv`
@@ -133,3 +148,8 @@ This keeps the agent understandable and easy to analyze, while still producing m
 - Alpha-Beta pruning is expected to be more efficient than plain Minimax as depth increases.
 - Runtime and node counts grow quickly with depth, so deeper experiments may take significantly longer.
 - The current plotting script averages results across trials for each algorithm and depth combination.
+
+## Future Work
+- Add move ordering inside the search to improve Alpha-Beta pruning efficiency.
+- Continue tuning heuristic weights using more controlled gameplay testing.
+- Explore additional search improvements such as transposition tables or iterative deepening.

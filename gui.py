@@ -40,9 +40,12 @@ class ChessApp:
         self.selected_square = None
         self.legal_targets = set()
         self.auto_play_job = None
+        self.auto_play_stop_requested = False
 
         self.status_var = tk.StringVar(value="Your turn. You are White.")
         self.depth_var = tk.IntVar(value=2)
+        self.white_depth_var = tk.IntVar(value=2)
+        self.black_depth_var = tk.IntVar(value=2)
         self.mode_var = tk.StringVar(value=HUMAN_VS_AI)
 
         self._build_layout()
@@ -89,7 +92,8 @@ class ChessApp:
         mode_selector.grid(row=2, column=0, sticky="ew", pady=(4, 12))
         mode_selector.bind("<<ComboboxSelected>>", self.on_mode_change)
 
-        ttk.Label(side_panel, text="AI search depth").grid(row=3, column=0, sticky="w")
+        self.shared_depth_header = ttk.Label(side_panel, text="AI search depth")
+        self.shared_depth_header.grid(row=3, column=0, sticky="w")
         depth_selector = ttk.Spinbox(
             side_panel,
             from_=1,
@@ -98,37 +102,60 @@ class ChessApp:
             width=5,
         )
         depth_selector.grid(row=4, column=0, sticky="w", pady=(4, 12))
+        self.shared_depth_label = depth_selector
+
+        self.white_depth_label = ttk.Label(side_panel, text="White AI depth")
+        self.white_depth_label.grid(row=3, column=0, sticky="w")
+        self.white_depth_selector = ttk.Spinbox(
+            side_panel,
+            from_=1,
+            to=4,
+            textvariable=self.white_depth_var,
+            width=5,
+        )
+        self.white_depth_selector.grid(row=4, column=0, sticky="w", pady=(4, 12))
+
+        self.black_depth_label = ttk.Label(side_panel, text="Black AI depth")
+        self.black_depth_label.grid(row=5, column=0, sticky="w")
+        self.black_depth_selector = ttk.Spinbox(
+            side_panel,
+            from_=1,
+            to=4,
+            textvariable=self.black_depth_var,
+            width=5,
+        )
+        self.black_depth_selector.grid(row=6, column=0, sticky="w", pady=(4, 12))
 
         ttk.Button(side_panel, text="New Game", command=self.new_game).grid(
-            row=5, column=0, sticky="ew", pady=(0, 8)
+            row=7, column=0, sticky="ew", pady=(0, 8)
         )
         ttk.Button(side_panel, text="Undo Last Move", command=self.undo_last_turn).grid(
-            row=6, column=0, sticky="ew", pady=(0, 8)
+            row=8, column=0, sticky="ew", pady=(0, 8)
         )
         self.start_auto_play_button = ttk.Button(
             side_panel, text="Start Auto Play", command=self.start_auto_play
         )
-        self.start_auto_play_button.grid(row=7, column=0, sticky="ew", pady=(0, 8))
+        self.start_auto_play_button.grid(row=9, column=0, sticky="ew", pady=(0, 8))
         self.stop_auto_play_button = ttk.Button(
-            side_panel, text="Stop Auto Play", command=self.stop_auto_play
+            side_panel, text="Stop Auto Play", command=self.request_stop_auto_play
         )
-        self.stop_auto_play_button.grid(row=8, column=0, sticky="ew", pady=(0, 8))
+        self.stop_auto_play_button.grid(row=10, column=0, sticky="ew", pady=(0, 8))
         self.step_move_button = ttk.Button(
             side_panel, text="Play One Turn", command=self.play_one_ai_turn
         )
-        self.step_move_button.grid(row=9, column=0, sticky="ew", pady=(0, 8))
+        self.step_move_button.grid(row=11, column=0, sticky="ew", pady=(0, 8))
 
-        ttk.Label(side_panel, text="How to play").grid(row=10, column=0, sticky="w", pady=(12, 4))
+        ttk.Label(side_panel, text="How to play").grid(row=12, column=0, sticky="w", pady=(12, 4))
         instructions = (
             "Human vs AI: click a White piece, then click a highlighted square.\n"
-            "AI vs AI: start a new game, then use Start Auto Play or Play One Turn."
+            "AI vs AI: start a new game, set White and Black depths, then use Start Auto Play or Play One Turn."
         )
         ttk.Label(side_panel, text=instructions, wraplength=220, justify="left").grid(
-            row=11, column=0, sticky="w"
+            row=13, column=0, sticky="w"
         )
 
         ttk.Label(side_panel, textvariable=self.status_var, wraplength=220, justify="left").grid(
-            row=12, column=0, sticky="w", pady=(16, 0)
+            row=14, column=0, sticky="w", pady=(16, 0)
         )
 
         self._update_mode_controls()
@@ -236,8 +263,21 @@ class ChessApp:
             return
 
         if self.auto_play_job is None:
+            self.auto_play_stop_requested = False
             self.status_var.set("AI vs AI autoplay started.")
             self._schedule_auto_play()
+
+    def request_stop_auto_play(self):
+        if self.auto_play_job is None:
+            self.status_var.set("Auto play is not currently running.")
+            return
+
+        if self.board.turn == chess.WHITE:
+            self.stop_auto_play()
+            self.status_var.set("Auto play stopped after Black completed the turn.")
+        else:
+            self.auto_play_stop_requested = True
+            self.status_var.set("Stop requested. Black will make one final move.")
 
     def stop_auto_play(self):
         if self.auto_play_job is not None:
@@ -246,13 +286,26 @@ class ChessApp:
             except tk.TclError:
                 pass
             self.auto_play_job = None
+        self.auto_play_stop_requested = False
 
     def _update_mode_controls(self):
         if self.mode_var.get() == AI_VS_AI:
+            self.shared_depth_header.grid_remove()
+            self.shared_depth_label.grid_remove()
+            self.white_depth_label.grid()
+            self.white_depth_selector.grid()
+            self.black_depth_label.grid()
+            self.black_depth_selector.grid()
             self.start_auto_play_button.grid()
             self.stop_auto_play_button.grid()
             self.step_move_button.grid()
         else:
+            self.shared_depth_header.grid()
+            self.shared_depth_label.grid()
+            self.white_depth_label.grid_remove()
+            self.white_depth_selector.grid_remove()
+            self.black_depth_label.grid_remove()
+            self.black_depth_selector.grid_remove()
             self.start_auto_play_button.grid_remove()
             self.stop_auto_play_button.grid_remove()
             self.step_move_button.grid_remove()
@@ -274,6 +327,11 @@ class ChessApp:
 
         if self.board.is_game_over():
             self._finish_game()
+            return
+
+        if self.auto_play_stop_requested and self.board.turn == chess.WHITE:
+            self.stop_auto_play()
+            self.status_var.set("Auto play stopped after Black completed the turn.")
             return
 
         self._schedule_auto_play()
@@ -323,9 +381,10 @@ class ChessApp:
 
     def _run_ai_move(self):
         maximizing_player = self.board.turn == chess.WHITE
+        depth = self._current_ai_depth()
         _, move = alphabeta(
             self.board,
-            depth=self.depth_var.get(),
+            depth=depth,
             alpha=float("-inf"),
             beta=float("inf"),
             maximizing_player=maximizing_player,
@@ -336,6 +395,11 @@ class ChessApp:
 
         self.board.push(move)
         self._draw_board()
+
+    def _current_ai_depth(self):
+        if self.mode_var.get() == AI_VS_AI:
+            return self.white_depth_var.get() if self.board.turn == chess.WHITE else self.black_depth_var.get()
+        return self.depth_var.get()
 
     def _select_square(self, square):
         self.selected_square = square
