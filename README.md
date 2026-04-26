@@ -148,3 +148,8 @@ The weights and bonuses are defined as named constants in `evaluate.py`, which m
 - Alpha-Beta pruning is expected to be more efficient than plain Minimax as depth increases.
 - Runtime and node counts grow quickly with depth, so deeper experiments may take significantly longer.
 - The current plotting script averages results across trials for each algorithm and depth combination.
+
+## Future Work
+- Add move ordering inside the search to improve Alpha-Beta pruning efficiency.
+- Continue tuning heuristic weights using more controlled gameplay testing.
+- Explore additional search improvements such as transposition tables or iterative deepening.
